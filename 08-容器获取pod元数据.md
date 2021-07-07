@@ -168,7 +168,7 @@
       }
       #新建job并通过api获取json信息
       $ sudo kubectl create -f my-job.yaml
-      $ curl http:localhost:8001/apis/batch/v1/namespaces/default/jobs/myjob
+      $ curl http://localhost:8001/apis/batch/v1/namespaces/default/jobs/myjob
       ```
   * 从pod内部与API服务器交互
     
@@ -253,7 +253,7 @@
       curl -H "Authorization: Bearer $TOKEN" https://kubernetes   
       ```
     * 其他HTTP请求的方法，可以通过POST、GET、PUT/PATCH、DELETE来进行CRUD操作，但是需要指定命名空间
-    ![](pod-API-server.png)
+    ![](./pictures/pod-API-server.png)
 
   * 通过ambassador容器与API服务器交互
     如果关闭了对服务器的验证功能，在pod中使用ambassador容器，在其中运行```kubectl proxy```进行代理，因为在同一个pod，共享同样的回送网络接口(回环地址、localhost)
@@ -269,7 +269,7 @@
         image: curlimages/curl
         command: ["sleep", "9999999"]
       - name: ambassador
-        image: luska/kubectl-proxy:1.6.2
+        image: luksa/kubectl-proxy:1.6.2
     ```
     进入main容器尝试互交
     ```shell

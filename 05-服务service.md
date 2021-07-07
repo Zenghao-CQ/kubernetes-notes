@@ -245,7 +245,7 @@
         $ curl <node-ip>:30123
         ```
 
-        ![](./nodePort.png)
+        ![](./pictures/nodePort.png)
         
     * **LoadBalancer**
         * 设置类型为loadBalancer，负载均衡器由Kubernetes中的云基础设施提供（专门的设施，minikube没有），有独一无二的ip和端口。
@@ -349,7 +349,7 @@
                                 serviceName: bar
                                 servicePort: 80
             ```
-        ![](./ingress.png)
+        ![](./pictures/ingress.png)
             
         * 无法拉取镜像
             ```shell

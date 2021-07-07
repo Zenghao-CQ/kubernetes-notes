@@ -10,9 +10,9 @@
 ##### 重定向类型：
 |命令|含义|补充|
 |---|---|---|
-|cmd>file|标准输出重定向到file|从头写，若file存在则删除新建
+|cmd>file|标准输出重定向到file|从头写，若file存在则删除新建|
 |cmd 1>file|标准输出重定向到file|
-|cmd 2>file|标准错误重定向到file|存在则重新建
+|cmd 2>file|标准错误重定向到file|存在则重新建|
 |cmd>>file|追加标准错误重定向到file|
 |cmd<file|标准输入到file|
 |cmd 0<file|标准输入到file|

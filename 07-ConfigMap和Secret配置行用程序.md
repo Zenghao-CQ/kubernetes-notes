@@ -64,7 +64,7 @@ spec:
         $ sudo kubectl create configmap my-config --from-file=config-files  
         ```
         读入后文件内容成为条目的值
-        ![CM读取配置](configmap.png)
+        ![CM读取配置](./pictures/configmap.png)
     * 通过yaml创建
         ```yaml
         apiVersion: v1

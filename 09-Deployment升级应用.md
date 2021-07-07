@@ -140,7 +140,7 @@
           maxUnavilable: 0
         type: RollingUpdate
     ```
-    ![](deployment.png)
+    ![](./pictures/deployment.png)
   
   * 暂停滚动
     此时（可能）刚好创建一个新的pod，接入部分服务，相当于金丝雀发布。在恢复时可以多此修改deployment，在完成后再恢复
@@ -220,7 +220,7 @@
     # 查看更新进度
     $ sudo kubectl rollout status deployment <name>
     # 回滚
-    $ sudo kubectl undo status deployment <name>
+    $ sudo kubectl rollout undo status deployment <name>
     # 退回到具体版本
     $ sudo kubectl rollout undo deployment/kubia --to-revision=1
     # 查看版本信息
