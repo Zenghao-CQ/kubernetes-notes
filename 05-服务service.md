@@ -411,6 +411,8 @@
                 < 
                 You've hit kubia-mjhkx
                 * Connection #0 to host kubia.example.com left intact
+                # 手动指定证书亦可
+                $ curl --cacert tls.cert https://kubia.example.com
                 ```
 
 4. #### pod就绪信号
