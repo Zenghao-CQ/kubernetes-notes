@@ -106,6 +106,7 @@
             sudo kubectl get po -l env in (prod,devel)
             sudo kubectl get po -l env not in (prod,devel)
             sudo kubectl get po -l app=pc, rel=beta #使用多个标签选择
+            sudo kubectl get po -o custom-column=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
             ```
     * 使用标签和选择器进行pod调度约束
         例如，某些 pod 的应用需要固态、GPU，用标签描述其调度需求

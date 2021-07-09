@@ -2,7 +2,7 @@
 
 #### 1. Kubernetes架构
 * kubernetes的组件
-  * Kubernetes Control Plante控制面板：etcd分布式持久化存储；API服务器；etcd分布式持久化存储；scheduler调度器；controller manager控制器管理器
+  * Kubernetes Control Plante控制面板：kubelete（如果要在master运行控制面板组件的pod），etcd分布式持久化存储；API服务器；etcd分布式持久化存储；scheduler调度器；controller manager控制器管理器
   * (Worker) Nodes工作节点：kubelet；kubelete服务代理（kube-proxy）；container runtime容器
   * ADD-ON components附加组件：kubernetes DNS服务器；dashboard仪表盘；Ingress 控制器；heapster(容器监控插件)；容器网络接口插件；
     ```shell
@@ -14,3 +14,61 @@
   * 组件间通信：
     * 只能通过API服务器，其他组件不直接与API服务器通信，而是通过API服务器来修改集群状态。
     * 通常与API服务器的连接由组件发起，但是**获取日志**、**kubectl attch(附着到主程序)**、**port-forward**时候由API发起
+    * 工作节点的组件运行在**同一节点上**，而控制面板的组件可以分散在**多台服务器**，并且可以有多个实例。etcd和API服务器可以多个实例同时工作而，调度器（scheduler）和控制器管理器（Controller Manager）只能**一个实例运行**，其他处于待命模式。
+  * 组件的运行
+    * 只有kebuelete要一直作为常规组件运行，其他组件如控制面板组件和kube-proxy可以作为常规程序或者pod运行，若将他们作为pod使用，则要在**master**上安装**kubelet**。
+      ```shell
+      #指定特定列，并排序
+      $ sudo kubectl get po -o custom-columns=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
+      ```
+      书上的多节点例子可以看到，控制面板组件全在主节点，工作节点运行kube-proxy和flannel pod
+    * **kubernetes运行etcd的机制**
+      * etcd是一个key-value的分布式存储，持久化保存pod、rc等的manifest。只有API服务器可以直接与etcd通信，保证了**乐观并发控制**（采用版本号进行控制，在metadata。resourceVersion中），也便于以后更换存储系统
+      * etcd v2采用层级键空间，键值对类似文件系统，key可以对应一个包含其他key的目录或正常的值；v3不支持目录但是可以格式包含```/```所以可以认为它被组织成目录。[etcdctl使用参考](https://stackoverflow.com/questions/59412402/errors-when-using-etcdctl-on-kubernetes-cluster-certificates-signed-by-unknown)， etcd v3无法使用ls命令，而且要etcd运行在pod中，要进入容器且认证
+        ```shell
+        # 查看条目，列出指定前缀
+        sudo kubectl -n kube-system exec -it etcd-minikube -- sh -c \
+        "ETCDCTL_API=3 ETCDCTL_CACERT=/var/lib/minikube/certs/etcd/ca.crt ETCDCTL_CERT=/var/lib/minikube/certs/etcd/server.crt ETCDCTL_KEY=/var/lib/minikube/certs/etcd/server.key etcdctl get /registry --prefix=true"
+        # 或者拆开，先进入pod然后查看亦可
+        etcdctl get /registry --prefix=true #全部资源，查看指定前缀
+        etcdctl get /registry/pods #全部命名空间
+        etcdctl get /registry/pods/default #全部pod
+        etcdctl get /registry/pods/default/<podname> #获取json 
+        ```
+      * 一致性保证
+        使用乐观锁机制，同时要求控制面板只能通过API服务器访问存储模块保证一致性。同时为保证高可用性，会运行多个etcd实例并且要求它们保持一致，使用RAFT一致性算法，要求超过半数的成员节点参与更新，可能有脑裂状态，故最好是奇数，对于大集群**5-7个节点足够了**
+
+    * API服务器
+      * 以RESTful API的形式提供查询修改集群CRUD接口，并写入etcd
+      * 同时还会进行校验，保证不能写入非法对象（直接写入etcd呢？）
+      * 处理乐观锁，保证不被别的客户覆盖
+      * 处理流程
+        1. 认证插件(Authentication plugin)进行认证
+          轮流调用多个认证插件，确认发送者，从证书或HTTP标头（第八章）抽取用户名、ID、归属组等信息
+        2. 授权插件(Authorization plugin)进行授权
+          检查用户对请求的资源是否有执行请求的操作的权限
+        3. 准入插件(Admission plugin)验证修改请求
+          针对C、U、D操作，会修改资源，包括设置漏配字段为默认值等，可以在[官方文档](https://kubemetes.io/docs/admin/admission-controliers/)查看，包括AlwaysPullImage，ServiceAccount(设置默认账号)，NamespaceLifecycle等
+        4. 通过之后写入etcd返回响应给客户端 
+        ![](./pictures/API-server.png)
+    * API 服务器向客户通知资源变更
+      API服务器不会去创建pod或者管理SVC的端口，也不会通知控制管理器具体任务，它只是启动控制器已经一些组件来监控任务变更，注意kubectl也是客户端之一
+      ```shell
+      #通过watch参数监听CUD操作
+      sudo kubectl get po --watch 
+      sudo kubectl get po -o yaml --watch 
+      ````
+      如下图描述了用户监听、kubectl发起变更的流程
+      ![](./pictures/API-server-watch.png)
+    * Scheduler 调度器
+      利用API服务器的监听机制等待创建新的pod，然后通过API服务器更新pod的定义，API服务器通知对应节点上kubelet（利用监听机制），kubelet创建并运行pod的容器。
+      * 默认调度，过滤出可以节点，按照优先级进行分配
+        
+
+
+#### 安装etcd
+```shell
+wget https://github.com/etcd-io/etcd/releases/download/v3.4.13/etcd-v3.4.13-linux-amd64.tar.gz
+tar zxvf etcd-v3.4.13-linux-amd64.tar.gz
+mv etcd-v3.4.13-linux-amd64/etcdctl /usr/bin
+```
