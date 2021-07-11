@@ -77,7 +77,7 @@
   * kubelet的工作
     负责运行在工作节点上的内容，第一个任务是在API服务器创建Node资源，然后监听API服务器，启动和监控容器，向API报告运行状况，同时也更以根据本地目录的manifest创建pod（可以用于运行控制面板组件）
   * kubernetes Service Proxy服务代理
-    在每个节点运行kube-proxy，确保多服务IP和端口的连接可以到达某个具体pod。通过iptable进行代理，不进入kube-proxy，而是由kube-proxy陪着iptable规则进行转发
+    在每个节点运行kube-proxy，确保多服务IP和端口的连接可以到达某个具体pod。通过（Linux**内核**数据包过滤功能的工具）进行代理，不进入kube-proxy，而是由kube-proxy陪着iptable规则进行转发
   * add-on插件
     非必要，如DNS查询，ingress，dashboard等
     * kube-dns，默认用集群内部的DNS服务器，便于查询服务的IP。服务器地址在```/etc/resolv.conf```中用```nameserver```定义。
@@ -95,6 +95,41 @@
     ```
 
 #### 3. 什么是pod
+  创建pod后检查docker
+  ```shell
+  sudo kubectl run nginx --image=nginx
+  sudo docker ps
+  luksa/kubia-pet-peers                                           "node app.js" 
+              k8s_kubia_kubia-0_default_1c1a9fd5-3bc7-41a8-8160-dda7d41610b1_0
+  registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.1   "/pause"    
+              k8s_POD_kubia-0_default_1c1a9fd5-3bc7-41a8-8160-dda7d41610b1_0
+  ```
+  可以看到一个执行命令为```/pause/```的docker附加容器，时间比```node app.js```早，讲pod的所有容器保持共享的命名空间
+
+#### 4. 跨pod网络 
+* kubernetes本身不进行网络的建立，是由Container Nertwork Interface插件建立的。Kubernetes要求某个pod的IP与它在其他pod看来的IP是一致的，即pod-dst收到网络包的源地址必须与pod-src的地址一致，亦即没有NAT地址转换，源地址和目的地址不变，pod与节点的通信也无NAT。而且pod与外部通信时，pod发出网络包时候的源地址也不需要改变，因为通过主机发送会被改成主机IP。
+![](./pictures/net-structure.png)
+* 具体的工作原理
+  * 同节点通信：创造虚拟以太网Ethernet接口对，节点端为vethXX（ifconsig可查看），容器端均为eth0。主机端接到网桥上，从网桥的IP段给eth0分配IP，数据从**eth0-->vethXX-->网桥**
+  ![](./pictures/net-same-pod.png)
+  * 不同节点：可以通过三层路由，要求集群内pod的IP唯一，即网桥的IP不能重叠，如节点A用```10.1.1.0/24```（指前24位为分类号和网络号），节点B为```10.1.2.0/24```，设置好节点A、B路由表（直接转发不经过路由器）。只在相同网关、没有路由时有效，因为一般交换机是LAN口，ping的时候ARP可以正常转发得到彼此的MAC，但是路由器在3层，是WAN口，对私有IP会丢包。可以用SDN软件定义网络，对pod的报文进行封装
+  ![](./pictures/net-diff-pod.png)
+  * 引入容器接口CNI：用deamonSet部署即可，启动kubelet时加上```--network-plugin=cni```参数
+
+#### 5. 服务是的实现
+* kube-proxy：svc的IP是虚拟的，不会被分配给网络接口，也不会真的作为数据包的地址，所以**无法Ping通**
+* 使用Iptable：监控svc和endpoint，当svc创建时，API服务器通知所有节点上的kube-proxy客户端，然后kube-proxy创建一些iptable规则使得dst为svc的ip端口的包地址改为svc对应的pod的地址
+![](./pictures/kube-proxy.png)
+如上图，节点A在svc和endpoint变化是修改自己的iptable规则
+
+#### 6. 集群高可用
+  * 水平扩展集群，用deployment部署，即使副本数为1，也可以便于重启
+  * 采用选举机制，备用事例代价，一个[例子](https://github.com/kubernetes/contrib/tree/master/election)
+  * etcd和API服务器可以多实例，控制器和调度器不行，因为它们监听、修改(通过API服务器写etcd)集群状态，会长生竞争。可以采用选举机制(用```--leader-elect```参数，默认为true)
+  * 选举实现：**创建一个endpoint**或其他资源（endpoint的优点在于只要没有同名svc就没有副作用），因为一致性采用**乐观锁控制**，所以只会有一个实例创建成功，并负责更细资源，一旦宕机，其他实例发现会取代它。如scheduler会创建```kube-scheduler```（同理有```kube-dns```，```kube-controller-manager```等等）
+    ```shell
+    sudo kubectl get endpoints kube-scheduler -n kube-system -o yaml
+    ```
 
 
 
