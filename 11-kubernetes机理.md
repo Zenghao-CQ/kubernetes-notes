@@ -61,9 +61,41 @@
       如下图描述了用户监听、kubectl发起变更的流程
       ![](./pictures/API-server-watch.png)
     * Scheduler 调度器
-      利用API服务器的监听机制等待创建新的pod，然后通过API服务器更新pod的定义，API服务器通知对应节点上kubelet（利用监听机制），kubelet创建并运行pod的容器。
+      scheduler利用API服务器的监听机制等待创建新的pod，然后scheduler通过API服务器更新pod的定义，API服务器通知对应节点上kubelet（利用监听机制），kubelet创建并运行pod的容器。
       * 默认调度，过滤出可以节点，按照优先级进行分配
-        
+      * 高级调度，16章；多个scheduler可以通过pod的schedulerName选择，默认调度器为default-scheduler
+    * controllerManager控制器管理器
+      API服务器复制在etcd存储资源和向客户端通知变化（监听），调度器分配节点，控制器和管理器控制系统的实际状态符合定义
+      * 控制器包括：Replication管理器；RS、DS、Job控制器、Service控制器、Namespace控制器等等，对应资源
+      * 如何工作：通过API服务器监听资源的变更，定期执行，将集群的实际状态调整为期望状态(spec定义)，通过监听机制来获取变更。源码可以[查看](https://github.com/kubernetes/kubernetes/blob/master/pkg/controller)
+      * Replication管理器：通过监听replicas数量变化，与期望数量进行比对。只是将pod清单发到API服务器，由scheduler调度，kubelet去创建运行。RS、DS、Job控制器类似
+      * Deployment，每次修改后创建新的RS，执行滚动更新
+      * Serviece，其中LoadBalancer复制在LB类型的SVC在创建或删除时向基础设施请求和释放**负载均衡器**
+      * Endpoint控制器，同时监听SVC和Pod，在其变动时，将selector匹配的Pod的IP和端口写入Endpoint
+      * Namespace、PV等等资源都有
+      * 唤醒控制器：控制器通过API服务器操作，不直接与kebelet和kubernetes Service Proxy通信，由他们去启动pod，加载存储或者创建跨pod负载均衡等具体工作
+  * kubelet的工作
+    负责运行在工作节点上的内容，第一个任务是在API服务器创建Node资源，然后监听API服务器，启动和监控容器，向API报告运行状况，同时也更以根据本地目录的manifest创建pod（可以用于运行控制面板组件）
+  * kubernetes Service Proxy服务代理
+    在每个节点运行kube-proxy，确保多服务IP和端口的连接可以到达某个具体pod。通过iptable进行代理，不进入kube-proxy，而是由kube-proxy陪着iptable规则进行转发
+  * add-on插件
+    非必要，如DNS查询，ingress，dashboard等
+    * kube-dns，默认用集群内部的DNS服务器，便于查询服务的IP。服务器地址在```/etc/resolv.conf```中用```nameserver```定义。
+    1. kuibe-dns Pod订阅svc和endpoint的变化修改dns记录
+    2. Ingress运行一个反向代理如nginx，监听svc和endpoint，此外ingress的代理会直接将流量转发到pod不经过svc
+
+#### 2. 控制器流程
+  * 以deployment部署为例，在开始前，各个控制器已经就绪，这里省略了etcd，所有对象都通过API服务器存储在上面
+    ![](./pictures/manager-controller-1.png)
+  * 在kubectl提交deployment的创建，kubectl通过HTTP POST请求发送manifest到kubernetes服务器，存储在etcd中
+    ![](./pictures/manager-controller-2.png)
+  * 观察集群事件
+    ```shell
+    sudo kubectl get events --watch
+    ```
+
+#### 3. 什么是pod
+
 
 
 #### 安装etcd
