@@ -43,12 +43,12 @@
           persistentVolumeReclaimPolicy: Retain
           hostPath:
             path: /tmp/statefulset_test_a #必须指定不同路径，否则数据一样
-        ---
+        
         ...
-        - apiVersiion: v1
+        - apiVersion: v1
           name: pv-b
         ...
-        ---
+        
         ...
         name: pv-c
         ...
