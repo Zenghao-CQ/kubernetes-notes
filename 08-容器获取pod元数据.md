@@ -211,7 +211,7 @@
       # 通过域名进行访问
       / $ curl -k  https://kubernetes
       # 查看dns服务器配置
-      / $ cat /etc//resolv.conf 
+      / $ cat /etc/resolv.conf 
       nameserver 10.96.0.10
       search default.svc.cluster.local svc.cluster.local cluster.local
       options ndots:5
@@ -219,7 +219,7 @@
       $ sudo kubectl get svc -o wide -n kube-system
       kube-dns               ClusterIP   10.96.0.10       <none>        53/UDP,53/TCP,9153/TCP   154d    k8s-app=kube-dns
       ```
-    * **踩坑**， 目前minikube里的角色带有访问控制RBAC，可以手动关闭使得**所有角色都有权限**
+    * **踩坑**， 目前minikube里的角色带有访问控制RBAC，可以手动使得**所有角色都有权限**
       ```shell
       $ sudo kubectl create clusterrolebinding permissive-binding \
       --clusterrole=cluster-admin \
@@ -234,17 +234,17 @@
       # 在容器中查看
       / $ ls /var/run/secrets/kubernetes.io/serviceaccount/
       ca.crt     namespace  token
-      # 尝试通过CA证书访问API服务器，通过验证、可以连接但是未授权，403
+      # 尝试通过CA证书访问API服务器，通过验证，可以连接但是未授权，403
       / $ curl --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt https://kubernetes
-      ```
-      获取API服务器的授权，通过默认secret的token文件来获取服务器验证
-      ```shell
-      # 加载证书到环境变量
-      / $ TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
       #返回，未认证
       ...
       "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
       ...
+      ```
+      获取API服务器的授权，通过默认secret的token文件来获取服务器验证
+      ```shell
+      # 加载ca证书到环境变量
+      / $ export CURL_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
       # 添加token
       / $ export TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
       #访问

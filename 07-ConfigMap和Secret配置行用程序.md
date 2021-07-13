@@ -344,7 +344,7 @@ spec:
     如果从私有仓库拉取镜像，则需要kubernetes包含相应证书。仅包含一个.dockercfg一个条目，该条目通常是docker login时自行创建
     * 创建包含证书的secret
         ```shell
-        kubectl create secret docker-registry mydockerhubsecret \
+        kubectl create secret docker-registry my-dockerhub-secret \
         --docker-username=myusername \
         --docker-password=mypassword \
         --docker-email=my.email@provider.com
