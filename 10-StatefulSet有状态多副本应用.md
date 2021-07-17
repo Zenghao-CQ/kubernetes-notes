@@ -43,12 +43,12 @@
           persistentVolumeReclaimPolicy: Retain
           hostPath:
             path: /tmp/statefulset_test_a #必须指定不同路径，否则数据一样
-        ---
+        
         ...
-        - apiVersiion: v1
+        - apiVersion: v1
           name: pv-b
         ...
-        ---
+        
         ...
         name: pv-c
         ...
@@ -58,7 +58,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: kubia-state #指定名称，不应该这样
+        name: kubia-state #指定名称，最好是同名的kubia，否则dns会有问题，后面描述
       spec:
         clusterIP: None #headless模式
         selector: # 标签选择器

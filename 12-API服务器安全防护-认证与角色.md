@@ -126,3 +126,4 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
     ...
     ```
     可以看到API服务器用foo空间默认的```system:serviceaccount:foo:default```sa进行认证，该sa没有权限
+  * 使用Role和RoleBinding
