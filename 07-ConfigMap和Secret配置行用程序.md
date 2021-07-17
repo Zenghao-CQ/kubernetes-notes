@@ -350,10 +350,10 @@ spec:
         --docker-email=my.email@provider.com
         ```
     * 在pod定义时引用secret
-    ```yaml
-    spec:
-        imagePullSecret:
-        - name: mydockerhubsecret
-        container:
-        ...
-    ```
+        ```yaml
+        spec:
+            imagePullSecret:
+            - name: my-dockerhub-secret
+            container:
+            ...
+        ```

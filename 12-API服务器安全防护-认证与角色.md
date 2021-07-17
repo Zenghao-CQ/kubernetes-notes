@@ -9,8 +9,8 @@
   * 组：插件返回的组仅仅是组名字符串，系统内置的组有：
     * system:unauthenticated 所有认证插件都不会通过
     * system:authenticated 自动分配通过认证的用户
-    * system:serviceavvounts 全部serviceAccount
-    * system:serviceavvounts:<namespace> 特点命名空间中的serviceAccount
+    * system:serviceaccounts 全部serviceAccount
+    * system:serviceaccounts:<namespace> 特点命名空间中的serviceAccount
 * serviceAccount介绍
   * pod通过```/var/run/secrets/kubernetes.io/serviceaccount/token```文件进行身份认证。pod与serviceAccount相关联，通过卷挂载持有认证token。应用程序使用token连接API服务器，API服务器通过token认证serviceAccount进行身份认证，将如下用户名传入**授权插件**：
     ```
@@ -34,9 +34,8 @@
     Tokens:              foo-token-nxrzd
     Events:              <none>
     ```
-    sa自动创建了secret```foo-token-nxrzd```，为JWT认证token,secret有ca.crt、namespace、token三个条目    
-    * 可挂载密钥列表
-      默认情况pod可以挂载任何secret，可以在sa中开启强制挂载：在注解annotation中包含```kubernetes.io/enforce-mountable-secrets='true'```，这样挂载该sa的pod只能挂载列表中的secret
+    sa自动创建了secret```foo-token-nxrzd```（为JWT认证token）,secret有**ca.crt、namespace、token**三个条目    
+    * 可挂载密钥列表：默认情况pod可以挂载任何secret，可以在sa中开启强制挂载：在注解annotation中包含```kubernetes.io/enforce-mountable-secrets='true'```，这样挂载该sa的pod只能挂载列表中的secret
     * 从镜像拉取密钥，密钥secret可以从docker私有仓库中拉取，sa包含secret后，secret会被自动添加到引用sa的pod中
       ```shell
       # 第七章手动创建的镜像拉取secret
@@ -82,14 +81,16 @@
 
 #### 2. RBAC 基于角色的权限控制
 SA的用处在于，限制可挂载密钥，提供镜像拉取密钥，现在引入RBAC授权插件
-* 动作，API服务器暴露RESTFUL接口。客户端可以发送GET、POST、PUT、DELETE请求到特定URL上，URL对应pod、service等资源，RBAC授权插件判断是否允许在资源上执行动作，额外的动词use用于PodSeurityPolicy
-|HTTP方法|单一资源动作|资源集合动作|
-|---|---|---|
-|GET, HEAD|get（以及watch）用于监听|list（以及watch）|
-|POST|create|n/a|
-|PUT|update|n/a|
-|PATCH|patch|n/a|
-|DELETE|delete|deletecollection|
+* 动作：API服务器暴露RESTFUL接口。客户端可以发送GET、POST、PUT、DELETE请求到特定URL上，URL对应pod、service等资源，RBAC**授权插件**判断是否允许在资源上执行动作，额外的动词use用于PodSeurityPolicy
+
+  |HTTP方法|单一资源动作|资源集合动作|
+  |---|---|---|
+  |GET, HEAD|get（以及watch）用于监听|list（以及watch）|
+  |POST|create|n/a|
+  |PUT|update|n/a|
+  |PATCH|patch|n/a|
+  |DELETE|delete|deletecollection|
+
 RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资源url(ru、healthz或者/api本身)。主体(一个人、一个sa、一组用户或sa)可以对应一个或多个**角色**，角色有各种动作的权限。
 * RBAC资源四种资源分为两组：
   * Role、ClusterRole，角色和集群角色，指定在资源上可以执行哪些动作（可以做什么）
@@ -98,7 +99,7 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
   ![](./pictures/rbac-model.png)
 * RBAC使用
   * 在GKE中，创建集群时使用```--no-enable-legacy-authorization```禁用老版本授权，在minikube可能需要```--extra-config=apiserver.Authorization.Mode=RBAC```
-  * 回复RBAC功能：在第八章中已经为赋予了全部权限，如下
+  * 恢复RBAC功能：在第八章中已经设置为赋予了全部权限，如下
     ```shell
     $ sudo kubectl create clusterrolebinding permissive-binding \
     --clusterrole=cluster-admin \
