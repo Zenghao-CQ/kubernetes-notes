@@ -127,3 +127,16 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
     ```
     可以看到API服务器用foo空间默认的```system:serviceaccount:foo:default```sa进行认证，该sa没有权限
   * 使用Role和RoleBinding
+    Role资源定义了哪些操作（HTTP请求）可以在哪些资源上执行，下面的Role允许用户get并list全部svc，资源名必须使用**复数**
+    ```yaml
+    ./service-reader.yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      namespace: foo #指定命名空间
+      name: service-reader
+    rules: 
+    - apiGroups: [""] #svc是核心apiGroip资源，没有apiGroup名
+      verbs: ["get", "list"] #
+      resources: ["services"] #使用复数
+    ```
