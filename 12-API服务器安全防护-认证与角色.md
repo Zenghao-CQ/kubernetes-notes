@@ -127,16 +127,122 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
     ```
     可以看到API服务器用foo空间默认的```system:serviceaccount:foo:default```sa进行认证，该sa没有权限
   * 使用Role和RoleBinding
-    Role资源定义了哪些操作（HTTP请求）可以在哪些资源上执行，下面的Role允许用户get并list全部svc，资源名必须使用**复数**
-    ```yaml
-    ./service-reader.yaml
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      namespace: foo #指定命名空间
-      name: service-reader
-    rules: 
-    - apiGroups: [""] #svc是核心apiGroip资源，没有apiGroup名
-      verbs: ["get", "list"] #
-      resources: ["services"] #使用复数
-    ```
+    * 创建Role
+    Role资源定义了哪些操作（HTTP请求）可以在哪些资源上执行，下面的Role允许用户get并list全部svc，资源名必须使用**复数**,如果之开放部分sec可以用resourceName进行限定
+    用yaml文件在foo中创建
+      ```yaml
+      ./service-reader.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        namespace: foo #指定命名空间
+        name: service-reader
+      rules:  #使用多个apiGroup资源时可以采用
+      - apiGroups: [""] #svc是核心apiGroip资源，没有apiGroup名
+        verbs: ["get", "list"] #
+        resources: ["services"] #使用复数
+      ```
+      ```shell
+      $ sudo kubectl create -f service-reader.yaml -n foo
+      ```
+      用命令行在bar中创建
+        ```shell
+        $ sudo kubectl create role service-reader --verb=get --verb=list --resource=services -n bar
+        ```
+    * 绑定Role到ServiceAccount
+      角色Role可以绑定到一个user、ServiceAccount、或者一个组（user组或sa组）。创建一个RoleBinding资源将Role绑定到foo的默认serviceAccount上。
+        ```shell
+        $ sudo kubectl create rolebinding test --role=service-reader --serviceaccount=foo:default -n foo
+        #用--user参数可以绑定到用户上
+        #用--group参数可以绑定到组
+        ```
+      此时foo的默认sa有了列出svc的权限，而之前的pod text包含默认svc，尝试在foo的pod中访问service。
+      ```shell
+      $ sudo kubectl exec -it test -n foo sh
+      / $ curl localhost:8001/api/v1/namespaces/foo/services
+      {
+        "kind": "ServiceList",
+        "apiVersion": "v1",
+        "metadata": {
+          "selfLink": "/api/v1/namespaces/foo/services",
+          "resourceVersion": "694921"
+        },
+        "items": [] #成功获取，为空
+      }
+      ```
+      当然bar的test pod不能访问其命名空间的服务，修改foo中的test绑定使其引用bar中的默认sa，但是此时bar中的pod test只能列出**foo中的svc**，即roleBinding可以引用其他空间的role，可以跨空间访问
+      ```shell
+      $ sudo kubectl edit rolebinding test -n foo
+      #加上
+      subjects:
+      - kind: ServiceAccount
+        name: default
+        namespace: bar #foo中的rolebinding引用了bar空间的sa
+      ```
+      ![](./pictures/rolebinding.png)
+
+  * 使用ClusterRole和ClusterRoleBinding
+    属于集群级别的资源，不在命名空间内。对于**集群资源(没有命名空间)**如Node，PersistentVolume，NemaSpace等，或者**非资源URL**如/healthz，只能通过ClusterRole授权。
+    * 访问集群级别资源
+      以persistentVolume为例，使pod可以列出pv，首先创建一个pv-reader
+      ```shell
+      $ sudo kubectl create clusterrole pv-reader --verb=get,list --resource=persistentVolumes #复数
+      ```
+      创建一个**rolebinding**进行绑定
+      ```shell
+      $ sudo kubectl create rolebinding pv-test --clusterrole=pv-reader --serviceaccount=foo:default -n foo
+      #此时在foo的pod中仍然无法curl pv
+      ```
+      RoleBinding可以引用ClusterRole访问命名空间内的资源，但是不能访问**集群资源**，可以用ClusterRoleBinding访问
+      ```shell
+      $ sudo kubectl delete rolebinding pv-test -n foo
+      $ sudo kubectl create clusterrolebinding pv-test --clusterrole=pv-reader --serviceaccount=foo:default
+      ```
+      ![](./pictures/cluster-role-binding.png)
+    * 访问非资源URL
+      通常非资源URL通过叫system:discovery名字的ClusterRole和ClusterRoleBinding授权 
+      ```shell
+      #通过get yaml查看
+      $ sudo kubectl get clusterrole system:discovery -o yaml
+      ...
+      metadata:
+        annotations:
+          rbac.authorization.kubernetes.io/autoupdate: "true"
+        name: system:discovery
+      ...
+      rules:
+      - nonResourceURLs: #使用URL匹配
+        - /api
+        - /api/*
+        - /apis
+        - /apis/*
+        - /healthz
+        - /openapi
+        - /openapi/*
+        - /version
+        - /version/
+        verbs:
+        - get #限定get方法
+      ```
+      查看ClusterRoleBinding
+      ```shell
+      #通过get yaml查看
+      $ sudo kubectl get clusterrolebinding system:discovery -o yaml
+      ...
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io #指定组
+        kind: ClusterRole
+        name: system:discovery #引用clusterRole
+      subjects:
+      - apiGroup: rbac.authorization.k8s.io
+        kind: Group
+        name: system:authenticated #这里只绑定了authenticated组，书上的例子有unauthenticated
+      ```
+      可以直接从pod用API server的ip访问，此时用proxy反而无法访问
+      ```shell
+      / $ curl https://192.168.106.10:8443/api -k #这里不可行，因为没绑定unauthenticated组
+      # 指定证书可以
+      / $ export TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+      / $ curl -H "Authorization: Bearer $TOKEN" https://192.168.106.10:8443/api -k
+      ```
+      此外不加token时，认证插件返回的组为匿名```system:anonymous```
