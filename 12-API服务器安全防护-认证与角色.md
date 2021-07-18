@@ -107,14 +107,14 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
     ```
     这里可以先删除该clusterrolebinding
     ```shell
-    $ sudo kubectl clusterrolebinding permissive-binding
+    $ sudo kubectl delete clusterrolebinding permissive-binding
     ```
   * 创建命名空间和pod，用之前的ambassador镜像
     ```shell
     $ sudo kubectl create ns foo
     $ sudo kubectl create ns bar
-    $ sudo kubectl run test --image=luksa/kuberctl-proxy:1.6.2 -n foo
-    $ sudo kubectl run test --image=luksa/kuberctl-proxy:1.6.2 -n bar
+    $ sudo kubectl run test --image=luksa/kubectl-proxy:1.6.2 -n foo
+    $ sudo kubectl run test --image=luksa/kubectl-proxy:1.6.2 -n bar
     ```
   * 尝试在pod中访问API server以查看全部服务，由于此时删除了clusterrolebinding，自然没有权限
     ```shell
@@ -246,3 +246,66 @@ RBAC规则可以对应一类资源，也可以对应某类实例，甚至非资�
       / $ curl -H "Authorization: Bearer $TOKEN" https://192.168.106.10:8443/api -k
       ```
       此外不加token时，认证插件返回的组为匿名```system:anonymous```
+
+    * 用clusterRole授权命名空间的资源
+      可以用命名空间内的RoleBinding绑定集群资源ClusterRole，以view为例，可以看到有很多命名空间内和集群内的资源
+      ```shell
+      $ sudo kubectl get clusterrole view -o yaml
+      ... #有
+      - apiGroups:
+      - ""
+      resources:
+      - configmaps
+      - endpoints
+      - persistentvolumeclaims
+      - pods
+      - replicationcontrollers
+      - replicationcontrollers/scale
+      - serviceaccounts
+      - services
+      verbs:
+      - get
+      - list
+      - watch
+      ...
+      ```
+      如果用ClusterRoleBinding绑定ClusterRole，则可以访问**所有命名空间**中的指定资源；若用RoleBinding绑定则只能访问**特定命名空间**的制定资源
+      ```shell
+      # 创建ClusterRoleBinding
+      $ sudo kubectl create clusterrolebinding view-test --clusterrole=view --serviceaccount=foo:default
+      #在foo的test pod中，可以访问foo
+      / $ curl localhost:8001/api/v1/namespaces/foo/pods/
+      #在foo的test pod中，可以访问bar
+      / $ curl localhost:8001/api/v1/namespaces/bar/pods/
+      #在foo的test pod中，可以访问获取全部pod
+      / $ curl localhost:8001/api/v1/pods/
+      ```
+      ![](./pictures/chap12-3.png)
+      而如果用RoleBinding进行绑定
+      ```shell
+      #删除ClusterRoleBinding
+      $ sudo kubectl delete clusterrolebinding view-test
+      # 创建RoleBinding
+      $ sudo kubectl create rolebinding view-test --clusterrole=view --serviceaccount=foo:default -n foo
+      #在foo的test pod中，可以访问foo
+      / $ curl localhost:8001/api/v1/namespaces/foo/pods/
+      #在foo的test pod中，访问bar被拒绝
+      / $ curl localhost:8001/api/v1/namespaces/bar/pods/
+      #在foo的test pod中，访问获取全部pod被拒绝
+      / $ curl localhost:8001/api/v1/pods/
+      ```
+      ![](./pictures/chap12-4.png)
+      role和bind的搭配关系
+      ![](./pictures/chap12-5.png)
+  * 默认的role和binding
+    通过```get ClusterRoleBindings```和```get ClusteRrole```可以查看默认的角色和绑定，下面列举几个重要的：
+    * view ClusterRole：允许**读取**命名空间中除了Role、RoleBinding、secret以外的资源，防止权限扩散
+    * edit ClusterRole：允许**读取、修改**命名空间中包括secret在内的资源，除了Role、RoleBinding
+    * admin ClusterRole：赋予一个命名空间**全部控制权**，允许读取、修改命名空间中除了ResourceQuota的资源，包括Role、RoleBinding
+    * cluster-admin ClusterRole：赋予**整个集群全部控制权**，允许读取、修改命名空间中除了ResourceQuota的资源，包括Role、RoleBinding
+    * 其他默认ClusterRole：以```system:```为前缀，如：
+      * ```system:kube-scheduler```给调度器使用
+      * ```system:kube-node```给Kubelete使用
+      * ```system:Controller```作为控制器的前缀，Controller Manager的每个控制器都有独立的ClusterRole和ClusterRoleBinding
+  * 理性的授权
+    为每个pod创建特定的ServiceAccount并且与定制的(Cluster)Role和(Cluster)RoleBinding联系起来。令pod的spec.serviceAccount字段指向sa来使用
