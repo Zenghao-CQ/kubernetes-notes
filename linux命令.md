@@ -2,7 +2,7 @@
 
 #### 1. 输入输出重定向
 |类型|文件描述符|文件句柄位置|
-|---|---|---|---|
+|---|---|---|
 |stdin|0|/proc/self/fd/0|
 |stdout|1|/proc/self/fd/1|
 |stderr|2|/proc/self/fd/2|
