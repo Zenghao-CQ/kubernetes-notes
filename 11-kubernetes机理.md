@@ -2,7 +2,7 @@
 
 #### 1. Kubernetes架构
 * kubernetes的组件
-  * Kubernetes Control Plante控制面板：kubelete（如果要在master运行控制面板组件的pod），etcd分布式持久化存储；API服务器；etcd分布式持久化存储；scheduler调度器；controller manager控制器管理器
+  * Kubernetes Control Plante控制面板：kubelet（如果要在master运行控制面板组件的pod），etcd分布式持久化存储；API服务器；etcd分布式持久化存储；scheduler调度器；controller manager控制器管理器
   * (Worker) Nodes工作节点：kubelet；kubelete服务代理（kube-proxy）；container runtime容器
   * ADD-ON components附加组件：kubernetes DNS服务器；dashboard仪表盘；Ingress 控制器；heapster(容器监控插件)；容器网络接口插件；
     ```shell
@@ -16,7 +16,7 @@
     * 通常与API服务器的连接由组件发起，但是**获取日志**、**kubectl attch(附着到主程序)**、**port-forward**时候由API发起
     * 工作节点的组件运行在**同一节点上**，而控制面板的组件可以分散在**多台服务器**，并且可以有多个实例。etcd和API服务器可以多个实例同时工作而，调度器（scheduler）和控制器管理器（Controller Manager）只能**一个实例运行**，其他处于待命模式。
   * 组件的运行
-    * 只有kebuelete要一直作为常规组件运行，其他组件如控制面板组件和kube-proxy可以作为常规程序或者pod运行，若将他们作为pod使用，则要在**master**上安装**kubelet**。
+    * 只有kebuelet要一直作为常规组件运行，**kubeadm 把 kubelet 视为一个系统服务来管理**，其他组件如控制面板组件和kube-proxy可以作为常规程序或者pod运行，若将他们作为pod使用，则要在**master**上安装**kubelet**。
       ```shell
       #指定特定列，并排序
       $ sudo kubectl get po -o custom-columns=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
@@ -120,7 +120,7 @@
 * kube-proxy：svc的IP是虚拟的，不会被分配给网络接口，也不会真的作为数据包的地址，所以**无法Ping通**
 * 使用Iptable：监控svc和endpoint，当svc创建时，API服务器通知所有节点上的kube-proxy客户端，然后kube-proxy创建一些iptable规则使得dst为svc的ip端口的包地址改为svc对应的pod的地址
 ![](./pictures/kube-proxy.png)
-如上图，节点A在svc和endpoint变化是修改自己的iptable规则
+如上图，节点A在svc和endpoint变化是修改自己的iptable规则，即修改源地址的节点
 
 #### 6. 集群高可用
   * 水平扩展集群，用deployment部署，即使副本数为1，也可以便于重启

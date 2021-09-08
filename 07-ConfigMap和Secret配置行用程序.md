@@ -320,7 +320,7 @@ spec:
           secretName: fortune-https
     ```
     ```shell
-    $ sudo kubectl port-forward fortune-https 8463:443 #8443被API服务器占用
+    $ sudo kubectl port-forward fortune-https 8463:443  #--address 0.0.0.0 指定ip #8443被API服务器占用
     $ curl https://localhost:8463 -k #没有映射域名，靠证书验证应该不行
     ```
 * 挂载于内存中

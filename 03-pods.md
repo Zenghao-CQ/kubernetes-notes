@@ -70,7 +70,7 @@
         * 绕开service，通过端口转发直接访问
             * 将机器的本地端口 8888转发到kubia-manual pod的端口8080。可能会报错，需要安装socat，此外port-forward会占用shell，需要ctrl C手动退出
                 ```
-                sudo kubectl port-forward kubia-manual 8888:8000
+                sudo kubectl port-forward kubia-manual 8888:8000 #--address 0.0.0.0 指定ip
                 ```
             
 3. #### 用标签组织Pod

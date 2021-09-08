@@ -57,3 +57,11 @@
     ```
     -i，确保开放stdin，可以在shell输入命令
     -t，分离一个伪终端tty，可以看到输出
+
+9. ### 查看日志
+    ```
+    docker log --tail=1000 <container-name>
+    #从内部
+    sudo docker exec -it <container-name> bash
+    cat /var/lib/docker/containers/<container-id>/<container-id>-json.log
+    ```
