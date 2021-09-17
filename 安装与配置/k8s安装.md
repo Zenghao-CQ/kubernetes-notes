@@ -122,7 +122,21 @@ kubectl get nodes
 rm -rf /etc/kubernetes
 rm -rf ~/.kube
 ```
-
+8. 单节点
+报错：pod 处于pending状态，查看events
+```
+69s         Warning   FailedScheduling    pod/ingress-nginx-admission-create-77rlp         0/1 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.
+```
+```
+允许master节点部署pod
+kubectl taint nodes --all node-role.kubernetes.io/master-
+如果不允许调度
+kubectl taint nodes master1 node-role.kubernetes.io/master=:NoSchedule
+污点可选参数
+	  NoSchedule: 一定不能被调度
+      PreferNoSchedule: 尽量不要调度
+      NoExecute: 不仅不会调度, 还会驱逐Node上已有的Pod
+```
 
 DEGUB
 ```

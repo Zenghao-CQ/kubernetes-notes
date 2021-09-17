@@ -221,7 +221,8 @@
 3. #### 将服务暴露给外部客户端
     * 类型设为NodePort，针对**结点 Node**，所有节点上保留一个端口（所有节点上都使用相同），将NodePort端口的流量重定向到具体服务，服务部分转发到pod。与ClusterIP相似只不过可以外部访问。如果是云服务器可能需要开防火墙firewalld和端口
     创建nodePort
-        ```shell
+    
+        ```yaml
         apiVersion: v1
         kind: Service
         metadata:
@@ -234,7 +235,8 @@
                 nodePort: 30123  # 通过集群各节点IP可访问的端口, 忽略它则随机
             selector:
                 app: kubia
-        
+        ```
+        ```shell
         $ firewall-cmd --zone=public --add-port=30123/tcp --permanent #开防火墙
         $ firewall-cmd --reload
         
@@ -252,7 +254,7 @@
         * **客户端**通过**负载均衡器**的特定 IP 连接到跨所有节点的**节点端口**，结点端口流量转发到**具体的svc**，然后svc调度转发到**node上的具体pod**
         * 即：客户先到LB，然后LB根据负载调整的转发到合适的主机的NodePort，之后的流程跟nodeport一样，这相当于NodePort和客户端之间用loadBalancer进行代理。
         * 创建，无需指定nodeport：
-            ```shell
+            ```yaml
             apiVersion: v1
             kind: Service
             metadata:

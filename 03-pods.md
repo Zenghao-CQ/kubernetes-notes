@@ -34,11 +34,12 @@
         metadata:
             name: kubia-manual
         spec: 
-            image: luksa/kubia
-            name: kubia 
-            ports:
-                containerPort: 8080 #监听端口，指定端口不影响访问，纯粹是展示性的，只是方便查看
-                protocol: TCP
+            containers:
+            -   image: luksa/kubia
+                name: kubia 
+                ports:
+                -   containerPort: 8080 #监听端口，指定端口不影响访问，纯粹是展示性的，只是方便查看
+                    protocol: TCP
         ```
         
     * 可以通过以下命令查看对象具体意义
