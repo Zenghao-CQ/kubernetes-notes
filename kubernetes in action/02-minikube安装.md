@@ -3,12 +3,19 @@
 1. #### 下载安装
     国内环境下利用阿里云发布的 minikube 来安装，整个过程会变得十分流畅。至于版本 v1.2.0 这里可以自行查看最新版 
     ```shell
-    curl -Lo minikube http://kubernetes.oss-cn-hangzhou.aliyuncs.com/minikube/releases/v1.2.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+    curl -Lo minikube http://kubernetes.oss-cn-hangzhou.aliyuncs.com/minikube/releases/v1.19.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+    ```
+    或者根据官方文档也可
+    ```
+    curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    sudo install minikube-linux-amd64 /usr/local/bin/minikube
     ```
 
 2. #### 启动
     ```shell
     minikube start --vm-driver=none --registry-mirror=https://registry.docker-cn.com
+    minikube start --kubernetes-version=v1.19.0 --vm-driver=none --registry-mirror=https://registry.docker-cn.com --image-mirror-country=cn
+
     ```
     minikube实际是跑在虚拟机上的，但由于这里已经是在 VM 中运行的 minikube，所以采用 --vm-driver=none 方式，便不需要格外的创建虚拟机了 
     同时指定镜像下载使用 docker 国内源
@@ -43,7 +50,7 @@
         ```shell
         $ sudo curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/v1.5.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
         ```
-    * 通过google(需要梯子)：
+    * 通过google(需要梯子\好像不需要。。。)：
         ```shell
         curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
         ```
