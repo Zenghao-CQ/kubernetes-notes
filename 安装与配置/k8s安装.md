@@ -68,7 +68,9 @@ sudo apt-mark hold kubelet kubeadm kubectl
 
 4.初始化master节点
 ```
-kubeadm init --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.18.2 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
+kubeadm init --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.19.3 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
+//对于阿里云，华为云，要指定内网ip
+kubeadm init --image-repository registry.aliyuncs.com/google_containers  --apiserver-advertise-address=192.168.0.97  --kubernetes-version v1.19.3 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
 
 # 输出
 Then you can join any number of worker nodes by running the following on each as root:
@@ -105,6 +107,7 @@ kubeadm token create
 7. 安装flannel
 ```
 wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+wget https://hub.fastgit.org/flannel-io/flannel/blob/release/v0.14.1/Documentation/kube-flannel.yml
 
 #无法拉取则手动安装镜像（在https://github.com/flannel-io/flannel/releases/下载对应版本）
 docker load < flanneld-v0.14.0-amd64.docker
