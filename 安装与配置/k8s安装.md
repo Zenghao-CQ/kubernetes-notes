@@ -49,6 +49,8 @@ sudo vi /etc/docker/daemon.json
 }
 
 ```
+ sudo systemctl daemon-reload
+ sudo systemctl restart docker
 3.集群所有节点上安装 kubectl kubelet kubeadm
 ``` 
 添加阿里云k8s源
@@ -61,14 +63,14 @@ deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
 
 sudo apt-get update
 
-sudo apt-get -y install kubectl=1.19.3-00 kubelet=1.19.3-00 kubeadm=1.19.3-00
+sudo apt-get -y install kubectl=1.22.3-00 kubelet=1.22.3-00 kubeadm=1.22.3-00
 
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 4.初始化master节点
 ```
-kubeadm init --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.19.3 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
+kubeadm init --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.22.3 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
 //对于阿里云，华为云，要指定内网ip
 kubeadm init --image-repository registry.aliyuncs.com/google_containers  --apiserver-advertise-address=192.168.0.97  --kubernetes-version v1.19.3 --pod-network-cidr=10.244.0.0/16 --token-ttl=0 ##注意版本对应关系
 
@@ -78,7 +80,7 @@ Then you can join any number of worker nodes by running the following on each as
 kubeadm join 192.168.106.11:6443 --token jy2sc9.g3zyl861vmco7lid \
     --discovery-token-ca-cert-hash sha256:bead73f863b9774086962a95991750dc015187fffb3b0a7f04051720e4c4f027 
 
-
+#复制配置
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
