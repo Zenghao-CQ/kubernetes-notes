@@ -77,11 +77,11 @@
   * kubelet的工作
     负责运行在工作节点上的内容，第一个任务是在API服务器创建Node资源，然后监听API服务器，启动和监控容器，向API报告运行状况，同时也更以根据本地目录的manifest创建pod（可以用于运行控制面板组件）
   * kubernetes Service Proxy服务代理
-    在每个节点运行kube-proxy，确保多服务IP和端口的连接可以到达某个具体pod。通过iptable（Linux**内核**数据包过滤功能的工具）进行代理，不进入kube-proxy，而是由kube-proxy陪着iptable规则进行转发
+    在每个节点运行kube-proxy，确保多服务IP和端口的连接可以到达某个具体pod。通过iptable（Linux**内核**数据包过滤功能的工具）进行代理，不进入kube-proxy，而是由kube-proxy配置iptable规则进行转发
   * add-on插件
     非必要，如DNS查询，ingress，dashboard等
     * kube-dns，默认用集群内部的DNS服务器，便于查询服务的IP。服务器地址在```/etc/resolv.conf```中用```nameserver```定义。
-    1. kuibe-dns Pod订阅svc和endpoint的变化修改dns记录
+    1. kube-dns Pod订阅svc和endpoint的变化修改dns记录
     2. Ingress运行一个反向代理如nginx，监听svc和endpoint，此外ingress的代理会直接将流量转发到pod不经过svc
 
 #### 2. 控制器流程

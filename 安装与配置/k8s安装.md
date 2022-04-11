@@ -190,4 +190,10 @@ to reset your system's IPVS tables.
 
 The reset process does not clean your kubeconfig files and you must remove them manually.
 Please, check the contents of the $HOME/.kube/config file.
-```~
+```
+
+清空CNI插件
+```
+rm -rf /var/lib/cni/
+rm -rf /etc/cni/net.d/
+```

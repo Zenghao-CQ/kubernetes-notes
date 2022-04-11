@@ -61,7 +61,7 @@
       metadata:
         name: curl-custom-sa
       spec:
-      serviceAccountName: foo
+        serviceAccountName: foo
         containers:
         - name: main
           iamge: curlimages/curl
