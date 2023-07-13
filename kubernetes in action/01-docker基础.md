@@ -56,6 +56,7 @@
     sudo docker exec -it <container-name> bash
     ```
     -i，确保开放stdin，可以在shell输入命令
+    
     -t，分离一个伪终端tty，可以看到输出
 
 9. ### 查看日志
